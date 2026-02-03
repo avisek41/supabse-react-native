@@ -1,5 +1,41 @@
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
+# Supabase CRUD App
+
+A beautiful React Native app with full CRUD operations using Supabase. Features a modern UI with create, read, update, and delete functionality for items.
+
+## Supabase Setup
+
+Before running the app, you need to create the `items` table in your Supabase database:
+
+1. Go to your Supabase Dashboard: https://qejlwlshxldaeikgaklv.supabase.co
+2. Navigate to **SQL Editor**
+3. Run the following SQL to create the table:
+
+```sql
+CREATE TABLE items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  priority TEXT NOT NULL CHECK (priority IN ('High', 'Medium', 'Low')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Enable Row Level Security (optional, for public access)
+ALTER TABLE items ENABLE ROW LEVEL SECURITY;
+
+-- Create a policy that allows all operations (for demo purposes)
+CREATE POLICY "Allow all operations" ON items
+  FOR ALL
+  USING (true)
+  WITH CHECK (true);
+```
+
+**Note:** The table structure uses:
+- `title`: The item title (e.g., "Buy groceries")
+- `category`: The item category (e.g., "Shopping", "Work", "Personal")
+- `priority`: The priority level ("High", "Medium", or "Low")
+
 # Getting Started
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
