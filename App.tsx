@@ -18,7 +18,7 @@ const PRIORITIES = ['High', 'Medium', 'Low'] as const;
 type Priority = typeof PRIORITIES[number];
 
 const App = () => {
-  const { items, loading, error, createItem, updateItem, deleteItem } =
+  const { items, loading, error, createItem, updateItem, deleteItem, fetchHighPriorityTasks, fetchItems } =
     useItems();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
@@ -243,9 +243,27 @@ const App = () => {
 
           {/* Items List Section */}
           <View style={styles.listContainer} testID="items-list-container">
-            <Text style={styles.sectionTitle}>
-              Items ({items.length})
-            </Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                Items ({items.length})
+              </Text>
+              <View style={styles.filterButtons}>
+                <TouchableOpacity
+                  style={[styles.filterButton, styles.filterButtonSecondary]}
+                  onPress={fetchItems}
+                  testID="filter-all-button"
+                >
+                  <Text style={styles.filterButtonText}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterButton, styles.filterButtonPrimary]}
+                  onPress={fetchHighPriorityTasks}
+                  testID="filter-high-priority-button"
+                >
+                  <Text style={[styles.filterButtonText, styles.filterButtonTextPrimary]}>High Priority</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {loading && items.length === 0 ? (
               <View style={styles.loadingContainer} testID="loading-indicator">
@@ -482,11 +500,42 @@ const styles = StyleSheet.create({
   listContainer: {
     marginTop: 8,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 16,
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  filterButtonPrimary: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#fecaca',
+  },
+  filterButtonSecondary: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#e5e7eb',
+  },
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  filterButtonTextPrimary: {
+    color: '#dc2626',
   },
   loadingContainer: {
     alignItems: 'center',

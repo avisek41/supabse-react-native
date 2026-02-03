@@ -95,6 +95,26 @@ export const useItems = () => {
     }
   };
 
+  const fetchHighPriorityTasks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+  
+      const { data, error: fetchError } = await supabase
+        .rpc('get_high_priority_tasks', { task_category: 'Eng' }); // call RPC
+  
+      if (fetchError) throw fetchError;
+      setItems(data || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch items');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+
   useEffect(() => {
     fetchItems();
   }, []);
@@ -107,6 +127,7 @@ export const useItems = () => {
     createItem,
     updateItem,
     deleteItem,
+    fetchHighPriorityTasks,
   };
 };
 
