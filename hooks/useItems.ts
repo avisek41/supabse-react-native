@@ -18,6 +18,7 @@ export const useItems = () => {
     try {
       setLoading(true);
       setError(null);
+      // Direct table query (simple operations)
       const { data, error: fetchError } = await supabase
         .from('tasks')
         .select('*')
@@ -99,6 +100,8 @@ export const useItems = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // RPC (custom functions with complex logic)
   
       const { data, error: fetchError } = await supabase
         .rpc('get_high_priority_tasks', { task_category: '' }); // call RPC
