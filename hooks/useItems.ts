@@ -101,7 +101,7 @@ export const useItems = () => {
       setError(null);
   
       const { data, error: fetchError } = await supabase
-        .rpc('get_high_priority_tasks', { task_category: 'Eng' }); // call RPC
+        .rpc('get_high_priority_tasks', { task_category: '' }); // call RPC
   
       if (fetchError) throw fetchError;
       setItems(data || []);
