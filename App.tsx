@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -13,11 +13,16 @@ import {
   Platform,
 } from 'react-native';
 import { useItems, Item } from './hooks/useItems';
+import { AuthScreen } from './screens/AuthScreen';
+import { supabase } from './lib/supabase';
 
 const PRIORITIES = ['High', 'Medium', 'Low'] as const;
 type Priority = typeof PRIORITIES[number];
 
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const { items, loading, error, createItem, updateItem, deleteItem, fetchHighPriorityTasks, fetchItems } =
     useItems();
   const [title, setTitle] = useState('');
@@ -25,6 +30,47 @@ const App = () => {
   const [priority, setPriority] = useState<Priority>('Medium');
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Check if user is already authenticated
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session);
+        setUserEmail(session?.user?.email || null);
+      } catch (error) {
+        console.error('Error checking auth:', error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+      setUserEmail(session?.user?.email || null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleAuthSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setIsAuthenticated(false);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to logout');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title.trim() || !category.trim()) {
@@ -125,6 +171,24 @@ const App = () => {
     }
   };
 
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <SafeAreaView style={styles.container} testID="app-container">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show auth screen if not authenticated
+  if (!isAuthenticated) {
+    return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
+  }
+
+  // Show main app if authenticated
   return (
     <SafeAreaView style={styles.container} testID="app-container">
       <KeyboardAvoidingView
@@ -132,10 +196,26 @@ const App = () => {
         style={styles.keyboardView}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Items</Text>
-          <Text style={styles.headerSubtitle}>
-            {editingItem ? 'Edit Item' : 'Create & Manage Items'}
-          </Text>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>My Items</Text>
+              <Text style={styles.headerSubtitle}>
+                {editingItem ? 'Edit Item' : 'Create & Manage Items'}
+              </Text>
+              {userEmail && (
+                <Text style={styles.userEmail} testID="user-email">
+                  {userEmail}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              testID="logout-button"
+            >
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -369,6 +449,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: '700',
@@ -379,6 +467,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#e0e7ff',
     fontWeight: '500',
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#c7d2fe',
+    fontWeight: '400',
+    marginTop: 4,
+  },
+  logoutButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,

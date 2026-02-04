@@ -6,6 +6,7 @@ export interface Item {
   title: string;
   category: string;
   priority: string;
+  user_id?: string;
   created_at?: string;
 }
 
@@ -18,10 +19,20 @@ export const useItems = () => {
     try {
       setLoading(true);
       setError(null);
-      // Direct table query (simple operations)
+      
+      // Get current user ID from session
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      // Direct table query filtered by user_id
       const { data, error: fetchError } = await supabase
         .from('tasks')
         .select('*')
+        .eq('user_id', userId)
         .order('id', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -36,9 +47,18 @@ export const useItems = () => {
   const createItem = async (title: string, category: string, priority: string) => {
     try {
       setError(null);
+      
+      // Get current user ID from session
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error: createError } = await supabase
         .from('tasks')
-        .insert([{ title, category, priority }])
+        .insert([{ title, category, priority, user_id: userId }])
         .select()
         .single();
 
@@ -57,10 +77,20 @@ export const useItems = () => {
   const updateItem = async (id: string, title: string, category: string, priority: string) => {
     try {
       setError(null);
+      
+      // Get current user ID from session
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error: updateError } = await supabase
         .from('tasks')
         .update({ title, category, priority })
         .eq('id', id)
+        .eq('user_id', userId) // Ensure user can only update their own items
         .select()
         .single();
 
@@ -81,10 +111,20 @@ export const useItems = () => {
   const deleteItem = async (id: string) => {
     try {
       setError(null);
+      
+      // Get current user ID from session
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
       const { error: deleteError } = await supabase
         .from('tasks')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', userId); // Ensure user can only delete their own items
 
       if (deleteError) throw deleteError;
       setItems((prev) => prev.filter((item) => item.id !== id));
@@ -101,10 +141,21 @@ export const useItems = () => {
       setLoading(true);
       setError(null);
 
-      // RPC (custom functions with complex logic)
-  
+      // Get current user ID from session
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      // Query high priority tasks for the current user
       const { data, error: fetchError } = await supabase
-        .rpc('get_high_priority_tasks', { task_category: '' }); // call RPC
+        .from('tasks')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('priority', 'High')
+        .order('id', { ascending: false });
   
       if (fetchError) throw fetchError;
       setItems(data || []);
