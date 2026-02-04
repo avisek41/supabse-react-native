@@ -23,7 +23,7 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const { items, loading, error, createItem, updateItem, deleteItem, fetchHighPriorityTasks, fetchItems } =
+  const { items, loading, error, createItem, updateItem, deleteItem, fetchHighPriorityTasks, fetchItems, clearItems } =
     useItems();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
@@ -38,8 +38,18 @@ const App = () => {
         const { data: { session } } = await supabase.auth.getSession();
         setIsAuthenticated(!!session);
         setUserEmail(session?.user?.email || null);
+        
+        // Clear items first to prevent showing previous user's data
+        clearItems();
+        
+        // Fetch items if user is already authenticated
+        if (session) {
+          fetchItems();
+        }
       } catch (error) {
         console.error('Error checking auth:', error);
+        // Clear items on error too
+        clearItems();
       } finally {
         setIsCheckingAuth(false);
       }
@@ -49,8 +59,19 @@ const App = () => {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+      const isNowAuthenticated = !!session;
+      
+      // Always clear items first when auth state changes
+      clearItems();
+      
+      setIsAuthenticated(isNowAuthenticated);
       setUserEmail(session?.user?.email || null);
+      
+      // Fetch items only when user logs in (when session exists)
+      if (session) {
+        fetchItems();
+      }
+      // When session is null (logout), items are already cleared above
     });
 
     return () => {
@@ -59,16 +80,28 @@ const App = () => {
   }, []);
 
   const handleAuthSuccess = () => {
+    // Clear any existing items first
+    clearItems();
     setIsAuthenticated(true);
+    // Fetch items immediately after successful login
+    fetchItems();
   };
 
   const handleLogout = async () => {
     try {
+      // Clear items immediately and synchronously before logging out
+      clearItems();
+      setIsAuthenticated(false); // Update auth state immediately
+      setUserEmail(null); // Clear email immediately
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      setIsAuthenticated(false);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to logout');
+      // Even on error, keep items cleared and user logged out
+      clearItems();
+      setIsAuthenticated(false);
+      setUserEmail(null);
     }
   };
 

@@ -173,6 +173,11 @@ export const useItems = () => {
     fetchItems();
   }, []);
 
+  const clearItems = () => {
+    setItems([]);
+    setError(null);
+  };
+
   return {
     items,
     loading,
@@ -182,6 +187,7 @@ export const useItems = () => {
     updateItem,
     deleteItem,
     fetchHighPriorityTasks,
+    clearItems,
   };
 };
 
